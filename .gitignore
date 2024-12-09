@@ -1,0 +1,54 @@
+# Gradle 관련 파일
+.gradle/
+build/
+!gradle-wrapper.jar
+.gradle-cache/
+.gradle-build/
+
+# IntelliJ IDEA 관련 파일
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# OS 관련 파일
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Log 파일
+*.log
+*.gz
+*.zip
+
+# 환경 설정 파일
+.env
+*.env
+
+# Java 및 테스트 관련 파일
+*.class
+*.jar
+*.war
+*.ear
+*.javadoc
+*.java~
+
+# Lombok 관련 파일 (옵션)
+.lombok/
+
+# Maven과의 충돌 방지
+mvnw
+mvnw.cmd
+target/
+
+# 사용자 지정 디버깅 또는 캐시 파일
+*.swp
+*.swo
+*.bak
+*.tmp
+*.orig
+*.rej
+
+# IntelliJ의 새로운 공유 구성을 위해 저장
+!*.gitignore
