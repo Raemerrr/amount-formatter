@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.raemerrr"
-version = project.findProperty("version") as String? ?: "0.0.0"
+version = System.getenv("VERSION")
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(21))
