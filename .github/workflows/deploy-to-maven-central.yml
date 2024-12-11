@@ -21,8 +21,9 @@ jobs:
           
           VERSION="0.0.0"
           # Check if the commit message contains a label starting with 'v'
-          if [[ "$COMMIT_MESSAGE" == v* ]]; then
-            VERSION=${COMMIT_MESSAGE#v} # Remove 'v' prefix
+          if [[ "$COMMIT_MESSAGE" =~ v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            VERSION=${BASH_REMATCH[0]#v} # Extract and remove 'v'
+          echo "Extracted version: $VERSION"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
