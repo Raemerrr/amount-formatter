@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.raemerrr"
-version = project.findProperty("version") as String? ?: "0.0.0"
+version = System.getenv("VERSION")
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(21))
@@ -72,7 +72,7 @@ signing {
             System.getenv("GPG_PRIVATE_KEY"),
             System.getenv("GPG_PASSPHRASE")
     )
-    sign(publishing.publications["mavenJava"])
+    sign(publishing.publications)
 }
 
 tasks.test {

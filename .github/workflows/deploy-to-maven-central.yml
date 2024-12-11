@@ -61,16 +61,16 @@ jobs:
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          VERSION: ${{ needs.extract-version.outputs.version }}
         run: |
           ./gradlew clean publish \
             -PossrhUsername="${{ secrets.OSSRH_USERNAME }}" \
-            -PossrhPassword="${{ secrets.OSSRH_PASSWORD }}" \
-            -Pversion=${{ needs.create-release.outputs.version }}
+            -PossrhPassword="${{ secrets.OSSRH_PASSWORD }}"
 
       - name: Create a release
         uses: actions/create-release@v1.1.2
         with:
-          tag_name: ${{ needs.create-release.outputs.version }}
-          release_name: v${{ needs.create-release.outputs.version }}
+          tag_name: ${{ needs.extract-version.outputs.version }}
+          release_name: v${{ needs.extract-version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
