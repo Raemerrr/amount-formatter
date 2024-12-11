@@ -69,4 +69,5 @@ jobs:
             -Psigning.keyId=$(gpg --list-secret-keys --keyid-format LONG | grep sec | awk '{print $2}' | cut -d'/' -f2) \
             -Psigning.password="${{ secrets.GPG_PASSPHRASE }}" \
             -PossrhUsername="${{ secrets.OSSRH_USERNAME }}" \
-            -PossrhPassword="${{ secrets.OSSRH_PASSWORD }}"
+            -PossrhPassword="${{ secrets.OSSRH_PASSWORD }}" \
+            -Pversion=${{ env.LATEST_TAG }}
