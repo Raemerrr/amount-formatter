@@ -68,15 +68,11 @@ publishing {
 }
 
 signing {
-    val signingKey: String? = project.findProperty("gpgPrivateKey") as String? ?: System.getenv("GPG_PRIVATE_KEY")
-    val signingPassword: String? = project.findProperty("gpgPassphrase") as String? ?: System.getenv("GPG_PASSPHRASE")
-
-    if (signingKey.isNullOrBlank() || signingPassword.isNullOrBlank()) {
-        logger.error("GPG_PRIVATE_KEY or GPG_PASSPHRASE is not set.")
-    } else {
-        useInMemoryPgpKeys(signingKey, signingPassword)
-        sign(publishing.publications)
-    }
+    useInMemoryPgpKeys(
+            System.getenv("SIGNING_KEY"),
+            System.getenv("GPG_PASSPHRASE")
+    )
+    sign(publishing.publications["mavenJava"])
 }
 
 tasks.test {
