@@ -5,12 +5,11 @@ plugins {
 }
 
 group = "io.github.raemerrr"
-version = System.getenv("LATEST_TAG") ?: "v0.0.1"
+version = project.findProperty("version") as String? ?: "0.0.0"
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(21))
     withSourcesJar()
-    withJavadocJar()
 }
 
 repositories {
