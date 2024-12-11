@@ -71,8 +71,12 @@ signing {
     val signingKey: String? = project.findProperty("gpgPrivateKey") as String? ?: System.getenv("GPG_PRIVATE_KEY")
     val signingPassword: String? = project.findProperty("gpgPassphrase") as String? ?: System.getenv("GPG_PASSPHRASE")
 
-    useInMemoryPgpKeys(signingKey, signingPassword)
-    sign(publishing.publications)
+    if (signingKey.isNullOrBlank() || signingPassword.isNullOrBlank()) {
+        logger.error("GPG_PRIVATE_KEY or GPG_PASSPHRASE is not set.")
+    } else {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+        sign(publishing.publications)
+    }
 }
 
 tasks.test {
