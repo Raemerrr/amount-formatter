@@ -1,6 +1,8 @@
+import com.vanniktech.maven.publish.SonatypeHost
+
 plugins {
     id("java")
-    id("maven-publish")
+    id("com.vanniktech.maven.publish") version "0.28.0"
     id("signing")
 }
 
@@ -21,49 +23,38 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"])
+mavenPublishing {
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
 
-            pom {
-                name.set("Amount Formatter")
-                description.set("A simple library to format amounts")
-                url.set("https://github.com/Raemerrr/amount-formatter")
+    signAllPublications()
 
-                licenses {
-                    license {
-                        name.set("MIT License")
-                        url.set("https://opensource.org/licenses/MIT")
-                        distribution.set("repo")
-                    }
-                }
+    coordinates("io.github.raemerrr", "amount-formatter", System.getenv("VERSION"))
 
-                developers {
-                    developer {
-                        id.set("Raemerrr")
-                        name.set("Raemin Kang")
-                        email.set("foals18@gmail.com")
-                    }
-                }
+    pom {
+        name.set("Amount Formatter")
+        description.set("A simple library to format amounts")
+        url.set("https://github.com/Raemerrr/amount-formatter")
 
-                scm {
-                    connection.set("scm:git:git://github.com/Raemerrr/amount-formatter.git")
-                    developerConnection.set("scm:git:ssh://git@github.com:Raemerrr/amount-formatter.git")
-                    url.set("https://github.com/Raemerrr/amount-formatter")
-                }
+        licenses {
+            license {
+                name.set("MIT License")
+                url.set("https://opensource.org/licenses/MIT")
+                distribution.set("repo")
             }
         }
-    }
 
-    repositories {
-        maven {
-            name = "OSSRH"
-            url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-            credentials {
-                username = project.findProperty("ossrhUsername") as String? ?: System.getenv("OSSRH_USERNAME")
-                password = project.findProperty("ossrhPassword") as String? ?: System.getenv("OSSRH_PASSWORD")
+        developers {
+            developer {
+                id.set("Raemerrr")
+                name.set("Raemin Kang")
+                email.set("foals18@gmail.com")
             }
+        }
+
+        scm {
+            connection.set("scm:git:git://github.com/Raemerrr/amount-formatter.git")
+            developerConnection.set("scm:git:ssh://git@github.com:Raemerrr/amount-formatter.git")
+            url.set("https://github.com/Raemerrr/amount-formatter")
         }
     }
 }
