@@ -34,14 +34,6 @@ jobs:
         run: |
           echo "Extracted version: ${{ steps.extract_version.outputs.version }}"
 
-      - name: Create a release
-        uses: actions/create-release@v1.1.2
-        with:
-          tag_name: ${{ steps.extract_version.outputs.version }}
-          release_name: v${{ steps.extract_version.outputs.version }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   deploy:
     needs: create-release
     runs-on: ubuntu-latest
@@ -73,15 +65,6 @@ jobs:
           echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
           gpg --list-secret-keys --keyid-format LONG
 
-      - name: Use VERSION from create-release
-        run: |
-          echo "Deploying version: ${{ needs.create-release.outputs.version }}"
-
-      - name: Debug GPG Environment Variables
-        run: |
-          echo "GPG_PRIVATE_KEY=${{ secrets.GPG_PRIVATE_KEY }}"
-          echo "GPG_PASSPHRASE=${{ secrets.GPG_PASSPHRASE }}"
-
       - name: Deploy to Maven Central
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
@@ -94,3 +77,11 @@ jobs:
             -PossrhUsername="${{ secrets.OSSRH_USERNAME }}" \
             -PossrhPassword="${{ secrets.OSSRH_PASSWORD }}" \
             -Pversion=${{ needs.create-release.outputs.version }}
+
+      - name: Create a release
+        uses: actions/create-release@v1.1.2
+        with:
+          tag_name: ${{ needs.create-release.outputs.version }}
+          release_name: v${{ needs.create-release.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

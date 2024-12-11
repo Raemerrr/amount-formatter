@@ -68,11 +68,11 @@ publishing {
 }
 
 signing {
-    useInMemoryPgpKeys(
-            System.getenv("GPG_PRIVATE_KEY"),
-            System.getenv("GPG_PASSPHRASE")
-    )
-    sign(publishing.publications["mavenJava"])
+    val signingKey: String? = project.findProperty("gpgPrivateKey") as String? ?: System.getenv("GPG_PRIVATE_KEY")
+    val signingPassword: String? = project.findProperty("gpgPassphrase") as String? ?: System.getenv("GPG_PASSPHRASE")
+
+    useInMemoryPgpKeys(signingKey, signingPassword)
+    sign(publishing.publications)
 }
 
 tasks.test {
