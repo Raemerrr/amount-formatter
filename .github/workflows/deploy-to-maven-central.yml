@@ -35,7 +35,7 @@ jobs:
           echo "Extracted version: ${{ steps.extract_version.outputs.version }}"
 
   deploy-release:
-    needs: create-release
+    needs: extract-version
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
