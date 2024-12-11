@@ -8,6 +8,8 @@ on:
 jobs:
   create-release:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract_version.outputs.version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -15,29 +17,25 @@ jobs:
       - name: Extract version from latest commit message
         id: extract_version
         run: |
-          # Get the commit message
           COMMIT_MESSAGE=$(git log -1 --pretty=%B)
           echo "Commit message: $COMMIT_MESSAGE"
           
           VERSION="0.0.0"
-          # Check if the commit message contains a label starting with 'v'
           if [[ "$COMMIT_MESSAGE" =~ v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
             VERSION=${BASH_REMATCH[0]#v} # Extract and remove 'v'
           echo "Extracted version: $VERSION"
           fi
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "::set-output name=version::$VERSION"
 
       - name: Show extracted version
-        run: | 
-          echo "Extracted version: ${{ env.VERSION }}"
+        run: |
+          echo "Extracted version: ${{ steps.extract_version.outputs.version }}"
 
       - name: Create a release
         uses: actions/create-release@v1.1.2
         with:
-          tag_name: ${{ env.LATEST_TAG }}
-          release_name: "Release ${{ env.LATEST_TAG }}"
-          draft: false
-          prerelease: false
+          tag_name: ${{ steps.extract_version.outputs.version }}
+          release_name: Release ${{ steps.extract_version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -72,6 +70,10 @@ jobs:
           echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
           gpg --list-secret-keys --keyid-format LONG
 
+      - name: Use VERSION from create-release
+        run: |
+          echo "Deploying version: ${{ needs.create-release.outputs.version }}"
+
       - name: Deploy to Maven Central
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
@@ -83,4 +85,4 @@ jobs:
             -Psigning.password="${{ secrets.GPG_PASSPHRASE }}" \
             -PossrhUsername="${{ secrets.OSSRH_USERNAME }}" \
             -PossrhPassword="${{ secrets.OSSRH_PASSWORD }}" \
-            -Pversion=${{ env.LATEST_TAG }}
+            -Pversion=${{ needs.create-release.outputs.version }}
