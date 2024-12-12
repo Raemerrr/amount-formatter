@@ -38,11 +38,14 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const { data: pr } = await github.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: ${{ steps.get_pr_number.outputs.pr_number }},
-            });
+            const { data: pr } = await github.request(
+              'GET /repos/{owner}/{repo}/pulls/{pull_number}',
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: ${{ steps.get_pr_number.outputs.pr_number }}
+              }
+            );
             const branchName = pr.head.ref;
             const prBody = pr.body || "No PR body provided.";
             core.setOutput("branch_name", branchName);
