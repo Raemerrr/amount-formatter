@@ -69,9 +69,12 @@ jobs:
           fi
 
           echo "::set-output name=version::$VERSION"
-          echo "RELEASE_BODY<<EOF" >> $GITHUB_ENV
-          cat pr_body.md >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+
+      - name: Upload PR Body Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: pr-body
+          path: pr_body.md
 
   deploy-release:
     needs: extract-version
@@ -107,11 +110,22 @@ jobs:
         run: |
           ./gradlew clean publish
 
+      - name: Download PR Body Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: pr-body
+
+      - name: Debug PR Body Content
+        run: |
+          echo "PR Body Content:"
+          cat pr_body.md
+
       - name: Create a release
         uses: actions/create-release@v1.1.2
         with:
           tag_name: ${{ needs.extract-version.outputs.version }}
           release_name: v${{ needs.extract-version.outputs.version }}
-          body: ${{ env.RELEASE_BODY }}
+          body: |
+            $(cat pr_body.md)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
