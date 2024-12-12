@@ -29,8 +29,7 @@ jobs:
             if (pulls.length === 0) {
               core.setFailed("No PR found for the current commit.");
             } else {
-              const prNumber = pulls[0].number;
-              core.setOutput("pr_number", prNumber);
+              core.setOutput("pr_number", pulls[0].number);
             }
 
       - name: Get PR details and extract branch name and body
@@ -38,28 +37,29 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const { data: pr } = await github.request(
-              'GET /repos/{owner}/{repo}/pulls/{pull_number}',
-              {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: ${{ steps.get_pr_number.outputs.pr_number }}
-              }
-            );
-            const branchName = pr.head.ref;
-            const prBody = pr.body || "No PR body provided.";
-            core.setOutput("branch_name", branchName);
-            core.setOutput("pr_body", prBody);
+            const { data: pr } = await github.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: ${{ steps.get_pr_number.outputs.pr_number }}
+            });
+            core.setOutput("branch_name", pr.head.ref);
+            core.setOutput("pr_body", pr.body || "No PR body provided.");
+
+      - name: Save PR body to file
+        run: |
+          echo "${{ steps.get_pr_details.outputs.pr_body }}" > pr_body.md
+          echo "PR body saved to pr_body.md."
 
       - name: Extract version from branch name and PR body
         id: extract_versions
         run: |
           # Extract branch name and PR body from previous steps
           BRANCH_NAME="${{ steps.get_pr_details.outputs.branch_name }}"
-          PR_BODY="${{ steps.get_pr_details.outputs.pr_body }}"
+          PR_BODY=$(cat pr_body.md)
 
           echo "Branch name: $BRANCH_NAME"
-          echo "PR body: $PR_BODY"
+          echo "PR body file content:"
+          echo "$PR_BODY"
 
           # Extract version from branch name (vX.X.X)
           if [[ "$BRANCH_NAME" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
@@ -86,3 +86,8 @@ jobs:
         run: |
           echo "Branch version: ${{ steps.extract_versions.outputs.branch_version }}"
           echo "Body version: ${{ steps.extract_versions.outputs.body_version }}"
+
+      - name: Show PR body file content
+        run: |
+          echo "PR body content:"
+          cat pr_body.md
