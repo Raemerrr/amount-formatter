@@ -115,17 +115,13 @@ jobs:
         with:
           name: pr-body
 
-      - name: Debug PR Body Content
+      - name: Read PR Body and Create Release
         run: |
-          echo "PR Body Content:"
-          cat pr_body.md
-
-      - name: Create a release
-        uses: actions/create-release@v1.1.2
-        with:
-          tag_name: ${{ needs.extract-version.outputs.version }}
-          release_name: v${{ needs.extract-version.outputs.version }}
-          body: |
-            $(cat pr_body.md)
+          TAG_NAME="v${VERSION}"
+          BODY=$(cat pr_body.md)
+          echo "Creating release with the following body:"
+          echo "$BODY"
+          gh release create "$TAG_NAME" --title "Release $TAG_NAME" --notes "$BODY"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.extract-version.outputs.version }}
