@@ -69,7 +69,9 @@ jobs:
           fi
 
           echo "::set-output name=version::$VERSION"
-          echo "::set-output name=release_body::$PR_BODY"
+          echo "RELEASE_BODY<<EOF" >> $GITHUB_ENV
+          cat pr_body.md >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
   deploy-release:
     needs: extract-version
@@ -110,6 +112,6 @@ jobs:
         with:
           tag_name: ${{ needs.extract-version.outputs.version }}
           release_name: v${{ needs.extract-version.outputs.version }}
-          body: ${{ steps.set_body.outputs.release_body }}
+          body: ${{ env.RELEASE_BODY }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
