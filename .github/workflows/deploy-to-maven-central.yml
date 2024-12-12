@@ -69,6 +69,12 @@ jobs:
 
           echo "::set-output name=version::$VERSION"
 
+      - name: Upload PR Body Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: pr-body
+          path: pr_body.md
+
   deploy-release:
     needs: extract-version
     runs-on: ubuntu-latest
@@ -102,6 +108,11 @@ jobs:
           VERSION: ${{ needs.extract-version.outputs.version }}
         run: |
           ./gradlew clean publish
+
+      - name: Download PR Body Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: pr-body
 
       - name: Read PR Body and Create Release
         run: |
