@@ -18,11 +18,14 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const { data: pulls } = await github.repos.listPullRequestsAssociatedWithCommit({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              commit_sha: context.sha,
-            });
+            const { data: pulls } = await github.request(
+              'GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls',
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                commit_sha: context.sha
+              }
+            );
             if (pulls.length === 0) {
               core.setFailed("No PR found for the current commit.");
             } else {
