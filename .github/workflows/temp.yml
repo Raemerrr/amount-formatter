@@ -1,0 +1,64 @@
+name: Extract Version from PR Branch
+
+on:
+  push:
+    branches:
+      - f/pr-test
+
+jobs:
+  extract-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Get PR number for the current commit
+        id: get_pr_number
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: pulls } = await github.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+            });
+            if (pulls.length === 0) {
+              core.setFailed("No PR found for the current commit.");
+            } else {
+              const prNumber = pulls[0].number;
+              core.setOutput("pr_number", prNumber);
+            }
+
+      - name: Get branch name for the PR
+        id: get_branch_name
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: pr } = await github.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: ${{ steps.get_pr_number.outputs.pr_number }},
+            });
+            const branchName = pr.head.ref;
+            core.setOutput("branch_name", branchName);
+
+      - name: Extract version from branch name
+        id: extract_version
+        run: |
+          BRANCH_NAME="${{ steps.get_branch_name.outputs.branch_name }}"
+          echo "Branch name: $BRANCH_NAME"
+
+          if [[ "$BRANCH_NAME" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            VERSION="${BASH_REMATCH[1]}"
+          else
+            echo "No version found in branch name"
+            VERSION="0.0.0"
+          fi
+
+          echo "Extracted version: $VERSION"
+          echo "::set-output name=version::$VERSION"
+
+      - name: Show extracted version
+        run: |
+          echo "Extracted version: ${{ steps.extract_version.outputs.version }}"
