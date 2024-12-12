@@ -2,13 +2,76 @@ name: Deploy to Maven Central
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+
+permissions:
+  contents: write
 
 jobs:
-  deploy:
+  extract-version:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract_versions.outputs.version }}
+      pr_body_file: ${{ steps.save_pr_body.outputs.pr_body_file }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
+      - name: Get PR number for the current commit
+        id: get_pr_number
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: pulls } = await github.request('GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls', {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha
+            });
+            if (pulls.length === 0) {
+              core.setFailed("No PR found for the current commit.");
+            } else {
+              core.setOutput("pr_number", pulls[0].number);
+            }
+
+      - name: Get PR details and extract branch name and body
+        id: get_pr_details
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: pr } = await github.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: ${{ steps.get_pr_number.outputs.pr_number }}
+            });
+            core.setOutput("branch_name", pr.head.ref);
+            core.setOutput("pr_body", pr.body || "No PR body provided.");
+
+      - name: Save PR body to file
+        id: save_pr_body
+        run: |
+          echo "${{ steps.get_pr_details.outputs.pr_body }}" > pr_body.md
+
+      - name: Extract version from branch name and PR body
+        id: extract_versions
+        run: |
+          BRANCH_NAME="${{ steps.get_pr_details.outputs.branch_name }}"
+          PR_BODY=$(cat pr_body.md)
+
+          echo "Branch name: $BRANCH_NAME"
+          echo "PR body: $PR_BODY"
+
+          if [[ "$BRANCH_NAME" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            VERSION="${BASH_REMATCH[1]}"
+          else
+            VERSION="No version in branch name"
+          fi
+
+          echo "::set-output name=version::$VERSION"
+
+  deploy-release:
+    needs: extract-version
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -27,24 +90,26 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Set up GPG
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      - name: Set up gradle.properties
         run: |
-          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
-          echo "use-agent" >> ~/.gnupg/gpg.conf
-          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
-          gpg --list-secret-keys --keyid-format LONG
+          echo "mavenCentralUsername=${{ secrets.MAVEN_CENTRAL_USERNAME }}" >> $GITHUB_WORKSPACE/gradle.properties
+          echo "mavenCentralPassword=${{ secrets.MAVEN_CENTRAL_PASSWORD }}" >> $GITHUB_WORKSPACE/gradle.properties
 
       - name: Deploy to Maven Central
         env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          VERSION: ${{ needs.extract-version.outputs.version }}
         run: |
-          ./gradlew clean publish \
-            -Psigning.keyId=$(gpg --list-secret-keys --keyid-format LONG | grep sec | awk '{print $2}' | cut -d'/' -f2) \
-            -Psigning.password="${{ secrets.GPG_PASSPHRASE }}" \
-            -PossrhUsername="${{ secrets.OSSRH_USERNAME }}" \
-            -PossrhPassword="${{ secrets.OSSRH_PASSWORD }}"
+          ./gradlew clean publish
+
+      - name: Read PR Body and Create Release
+        run: |
+          TAG_NAME="v${VERSION}"
+          BODY=$(cat pr_body.md)
+          echo "Creating release with the following body:"
+          echo "$BODY"
+          gh release create "$TAG_NAME" --title "$TAG_NAME" --notes "$BODY"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.extract-version.outputs.version }}
