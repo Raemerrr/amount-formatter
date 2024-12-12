@@ -12,27 +12,63 @@ jobs:
   extract-version:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.extract_version.outputs.version }}
+      version: ${{ steps.extract_versions.outputs.version }}
+      pr_body_file: ${{ steps.save_pr_body.outputs.pr_body_file }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Extract version from latest commit message
-        id: extract_version
-        run: |
-          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-          echo "Commit message: $COMMIT_MESSAGE"
-          
-          VERSION="0.0.0"
-          if [[ "$COMMIT_MESSAGE" =~ v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-            VERSION=${BASH_REMATCH[0]#v} # Extract and remove 'v'
-          echo "Extracted version: $VERSION"
-          fi
-          echo "::set-output name=version::$VERSION"
+      - name: Get PR number for the current commit
+        id: get_pr_number
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: pulls } = await github.request('GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls', {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha
+            });
+            if (pulls.length === 0) {
+              core.setFailed("No PR found for the current commit.");
+            } else {
+              core.setOutput("pr_number", pulls[0].number);
+            }
 
-      - name: Show extracted version
+      - name: Get PR details and extract branch name and body
+        id: get_pr_details
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: pr } = await github.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: ${{ steps.get_pr_number.outputs.pr_number }}
+            });
+            core.setOutput("branch_name", pr.head.ref);
+            core.setOutput("pr_body", pr.body || "No PR body provided.");
+
+      - name: Save PR body to file
+        id: save_pr_body
         run: |
-          echo "Extracted version: ${{ steps.extract_version.outputs.version }}"
+          echo "${{ steps.get_pr_details.outputs.pr_body }}" > pr_body.md
+          echo "::set-output name=pr_body_file::pr_body.md"
+
+      - name: Extract version from branch name and PR body
+        id: extract_versions
+        run: |
+          BRANCH_NAME="${{ steps.get_pr_details.outputs.branch_name }}"
+          PR_BODY=$(cat pr_body.md)
+
+          echo "Branch name: $BRANCH_NAME"
+          echo "PR body: $PR_BODY"
+
+          if [[ "$BRANCH_NAME" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            VERSION="${BASH_REMATCH[1]}"
+          else
+            VERSION="No version in branch name"
+          fi
+
+          echo "::set-output name=version::$VERSION"
 
   deploy-release:
     needs: extract-version
@@ -59,25 +95,22 @@ jobs:
         run: |
           echo "mavenCentralUsername=${{ secrets.MAVEN_CENTRAL_USERNAME }}" >> $GITHUB_WORKSPACE/gradle.properties
           echo "mavenCentralPassword=${{ secrets.MAVEN_CENTRAL_PASSWORD }}" >> $GITHUB_WORKSPACE/gradle.properties
-#          echo "signingKey=${{ secrets.SIGNING_KEY }}" >> ~/.gradle/gradle.properties
-#          echo "signingPassword=${{ secrets.SIGNING_PASSWORD }}" >> ~/.gradle/gradle.properties
 
       - name: Deploy to Maven Central
         env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           VERSION: ${{ needs.extract-version.outputs.version }}
         run: |
-          ./gradlew clean publish \
-            -PossrhUsername="${{ secrets.OSSRH_USERNAME }}" \
-            -PossrhPassword="${{ secrets.OSSRH_PASSWORD }}"
+          ./gradlew clean publish
 
       - name: Create a release
         uses: actions/create-release@v1.1.2
         with:
           tag_name: ${{ needs.extract-version.outputs.version }}
           release_name: v${{ needs.extract-version.outputs.version }}
+          body: ${{ env.RELEASE_BODY }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_BODY: |
+            $(cat ${{ needs.extract-version.outputs.pr_body_file }})
