@@ -9,7 +9,6 @@ plugins {
 rootProject.description = "A simple library to format amounts"
 
 signing {
-    isRequired = System.getenv("OSSRH_USERNAME") != null
     useInMemoryPgpKeys(
             System.getenv("GPG_PRIVATE_KEY"),
             System.getenv("GPG_PASSPHRASE")
