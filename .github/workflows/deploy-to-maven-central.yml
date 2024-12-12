@@ -55,6 +55,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Set up gradle.properties
+        run: |
+          echo "mavenCentralUsername=${{ secrets.MAVEN_CENTRAL_USERNAME }}" >> ~/.gradle/gradle.properties
+          echo "mavenCentralPassword=${{ secrets.MAVEN_CENTRAL_PASSWORD }}" >> ~/.gradle/gradle.properties
+#          echo "signingKey=${{ secrets.SIGNING_KEY }}" >> ~/.gradle/gradle.properties
+#          echo "signingPassword=${{ secrets.SIGNING_PASSWORD }}" >> ~/.gradle/gradle.properties
+
       - name: Deploy to Maven Central
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}

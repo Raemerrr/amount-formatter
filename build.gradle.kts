@@ -55,16 +55,3 @@ mavenPublishing {
 
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
 }
-
-publishing {
-    repositories {
-        maven {
-            name = "MavenCentral"
-            url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-            credentials {
-                username = System.getenv("OSSRH_USERNAME") ?: throw GradleException("MAVEN_CENTRAL_USERNAME is not set")
-                password = System.getenv("OSSRH_PASSWORD") ?: throw GradleException("MAVEN_CENTRAL_PASSWORD is not set")
-            }
-        }
-    }
-}
