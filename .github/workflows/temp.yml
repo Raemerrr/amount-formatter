@@ -30,8 +30,8 @@ jobs:
               core.setOutput("pr_number", prNumber);
             }
 
-      - name: Get branch name for the PR
-        id: get_branch_name
+      - name: Get PR details and extract branch name and body
+        id: get_pr_details
         uses: actions/github-script@v6
         with:
           script: |
@@ -41,24 +41,42 @@ jobs:
               pull_number: ${{ steps.get_pr_number.outputs.pr_number }},
             });
             const branchName = pr.head.ref;
+            const prBody = pr.body || "No PR body provided.";
             core.setOutput("branch_name", branchName);
+            core.setOutput("pr_body", prBody);
 
-      - name: Extract version from branch name
-        id: extract_version
+      - name: Extract version from branch name and PR body
+        id: extract_versions
         run: |
-          BRANCH_NAME="${{ steps.get_branch_name.outputs.branch_name }}"
-          echo "Branch name: $BRANCH_NAME"
+          # Extract branch name and PR body from previous steps
+          BRANCH_NAME="${{ steps.get_pr_details.outputs.branch_name }}"
+          PR_BODY="${{ steps.get_pr_details.outputs.pr_body }}"
 
+          echo "Branch name: $BRANCH_NAME"
+          echo "PR body: $PR_BODY"
+
+          # Extract version from branch name (vX.X.X)
           if [[ "$BRANCH_NAME" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-            VERSION="${BASH_REMATCH[1]}"
+            BRANCH_VERSION="${BASH_REMATCH[1]}"
           else
-            echo "No version found in branch name"
-            VERSION="0.0.0"
+            BRANCH_VERSION="No version in branch name"
           fi
 
-          echo "Extracted version: $VERSION"
-          echo "::set-output name=version::$VERSION"
+          # Extract version from PR body (vX.X.X)
+          if [[ "$PR_BODY" =~ v([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            BODY_VERSION="${BASH_REMATCH[1]}"
+          else
+            BODY_VERSION="No version in PR body"
+          fi
 
-      - name: Show extracted version
+          echo "Extracted version from branch name: $BRANCH_VERSION"
+          echo "Extracted version from PR body: $BODY_VERSION"
+
+          # Set outputs for subsequent steps
+          echo "::set-output name=branch_version::$BRANCH_VERSION"
+          echo "::set-output name=body_version::$BODY_VERSION"
+
+      - name: Show extracted versions
         run: |
-          echo "Extracted version: ${{ steps.extract_version.outputs.version }}"
+          echo "Branch version: ${{ steps.extract_versions.outputs.branch_version }}"
+          echo "Body version: ${{ steps.extract_versions.outputs.body_version }}"
