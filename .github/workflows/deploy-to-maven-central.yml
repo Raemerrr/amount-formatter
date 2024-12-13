@@ -47,16 +47,21 @@ jobs:
               repo: context.repo.repo,
               pull_number: ${{ steps.get_pr_number.outputs.pr_number }}
             });
-            core.setOutput("branch_name", pr.head.ref);
+            
+            if (pr.head.ref.startsWith('v')) {
+              core.setOutput("branch_name", pr.head.ref);
+            }
             core.setOutput("pr_body", pr.body || "No PR body provided.");
 
       - name: Save PR body to file
+        if: steps.get_pr_details.outputs.branch_name != ''
         id: save_pr_body
         run: |
           echo "${{ steps.get_pr_details.outputs.pr_body }}" > pr_body.md
 
       - name: Extract version from branch name and PR body
         id: extract_versions
+        if: steps.get_pr_details.outputs.branch_name != ''
         run: |
           BRANCH_NAME="${{ steps.get_pr_details.outputs.branch_name }}"
           PR_BODY=$(cat pr_body.md)
@@ -73,6 +78,7 @@ jobs:
           echo "::set-output name=version::$VERSION"
 
       - name: Upload PR Body Artifact
+        if: steps.get_pr_details.outputs.branch_name != ''
         uses: actions/upload-artifact@v3
         with:
           name: pr-body
@@ -80,6 +86,7 @@ jobs:
 
   deploy-release:
     needs: extract-version
+    if: needs.extract-version.outputs.version != ''
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
