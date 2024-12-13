@@ -57,14 +57,14 @@ jobs:
         if: steps.get_pr_details.outputs.branch_name != ''
         id: save_pr_body
         run: |
-          echo "${{ steps.get_pr_details.outputs.pr_body }}" > pr_body.md
+          echo "${{ steps.get_pr_details.outputs.pr_body }}" > pr_body.txt
 
       - name: Extract version from branch name and PR body
         id: extract_versions
         if: steps.get_pr_details.outputs.branch_name != ''
         run: |
           BRANCH_NAME="${{ steps.get_pr_details.outputs.branch_name }}"
-          PR_BODY=$(cat pr_body.md)
+          PR_BODY=$(cat pr_body.txt)
 
           echo "Branch name: $BRANCH_NAME"
           echo "PR body: $PR_BODY"
@@ -82,7 +82,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: pr-body
-          path: pr_body.md
+          path: pr_body.txt
 
   deploy-release:
     needs: extract-version
@@ -127,7 +127,7 @@ jobs:
       - name: Read PR Body and Create Release
         run: |
           TAG_NAME="v${VERSION}"
-          BODY=$(cat pr_body.md)
+          BODY=$(cat pr_body.txt)
           echo "Creating release with the following body:"
           echo "$BODY"
           gh release create "$TAG_NAME" --title "$TAG_NAME" --notes "$BODY"
