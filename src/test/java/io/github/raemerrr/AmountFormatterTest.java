@@ -3,27 +3,60 @@ package io.github.raemerrr;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Locale;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class AmountFormatterTest {
 
-	private static final AmountFormatter formatter = new DefaultAmountFormatter();
+	private static final AmountFormatter DEFAULT_AMOUNT_FORMATTER = new DefaultAmountFormatter();
 
 	@Test
-	@DisplayName("Locale과 숫자를 받아 해당 Locale의 통화 형식으로 변환합니다.")
-	void formattingSuccessTest() {
-		assertEquals("₩123,457", formatter.format(Locale.KOREA, 123456.789));
-		assertEquals("$123,456.79", formatter.format(Locale.US, 123456.789));
-		assertEquals("￥123,457", formatter.format(Locale.JAPAN, 123456.789));
+	void format_shouldFormatAmountForLocale() {
+		assertEquals("₩123,457", DEFAULT_AMOUNT_FORMATTER.format(Locale.KOREA, 123456.789));
+		assertEquals("$123,456.79", DEFAULT_AMOUNT_FORMATTER.format(Locale.US, 123456.789));
+		assertEquals("￥123,457", DEFAULT_AMOUNT_FORMATTER.format(Locale.JAPAN, 123456.789));
 	}
 
 	@Test
-	@DisplayName("잘못된 입력값이 들어왔을 때 예외 발생")
-	void formattingFailureTest() {
-		assertThrows(IllegalArgumentException.class, () -> formatter.format(Locale.KOREA, ""));
-		assertThrows(IllegalArgumentException.class, () -> formatter.format(null, 123456.79));
-		assertThrows(IllegalArgumentException.class, () -> formatter.format(Locale.KOREA, null));
-		assertThrows(IllegalArgumentException.class, () -> formatter.format(null, null));
+	void format_shouldThrowExceptionWhenLocaleIsNull() {
+		var exception = assertThrows(IllegalArgumentException.class, () ->
+				DEFAULT_AMOUNT_FORMATTER.format(null, 123456.789)
+		);
+		assertEquals("Locale and amount must not be null.", exception.getMessage());
+	}
+
+	@Test
+	void format_shouldThrowExceptionWhenAmountIsNull() {
+		var exception = assertThrows(IllegalArgumentException.class, () ->
+				DEFAULT_AMOUNT_FORMATTER.format(Locale.US, null)
+		);
+		assertEquals("Locale and amount must not be null.", exception.getMessage());
+	}
+
+	@Test
+	void format_shouldThrowExceptionForInvalidStringAmount() {
+		var exception = assertThrows(IllegalArgumentException.class, () ->
+				DEFAULT_AMOUNT_FORMATTER.format(Locale.US, "invalid amount")
+		);
+		assertEquals("Amount must be a valid number.", exception.getMessage());
+	}
+
+	@Test
+	void format_shouldFormatIntegerAmount() {
+		assertEquals("₩123,456", DEFAULT_AMOUNT_FORMATTER.format(Locale.KOREA, 123456));
+	}
+
+	@Test
+	void format_shouldParseStringAmount() {
+		assertEquals("$123,456.79", DEFAULT_AMOUNT_FORMATTER.format(Locale.US, "123456.789"));
+	}
+
+	@Test
+	void format_shouldFormatDoubleAmount() {
+		assertEquals("123 456,79 €", DEFAULT_AMOUNT_FORMATTER.format(Locale.FRANCE, 123456.789));
+	}
+
+	@Test
+	void format_shouldFormatFloatAmount() {
+		assertEquals("£123,456.79", DEFAULT_AMOUNT_FORMATTER.format(Locale.UK, 123456.789f));
 	}
 }
