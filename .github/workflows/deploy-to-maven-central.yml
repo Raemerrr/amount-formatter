@@ -57,7 +57,7 @@ jobs:
         if: steps.get_pr_details.outputs.branch_name != ''
         id: save_pr_body
         run: |
-          echo "${{ steps.get_pr_details.outputs.pr_body }}" > pr_body.txt
+          echo "${{ steps.get_pr_details.outputs.pr_body }}" | sed 's/\\n/\n/g' > pr_body.txt
 
       - name: Extract version from branch name and PR body
         id: extract_versions
